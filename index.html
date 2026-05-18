@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEONI — Intelligent System AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #01020a;
+    --bg-deep: #030610;
+    --bg-panel: rgba(5, 12, 35, 0.85);
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0,229,255,0.15);
+    --cyan-glow: rgba(0,229,255,0.4);
+    --teal: #00bcd4;
+    --gold: #ffd54f;
+    --danger: #ff3d71;
+    --safe: #00e676;
+    --text-bright: #e8f4f8;
+    --text-mid: rgba(200,230,240,0.7);
+    --text-dim: rgba(150,200,220,0.4);
+    --border: rgba(0,229,255,0.2);
+    --border-bright: rgba(0,229,255,0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-void);
+    color: var(--text-bright);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  /* ── CANVAS BACKGROUND ── */
+  #particle-canvas {
+    position: fixed; top:0; left:0;
+    width:100%; height:100%;
+    z-index:0; pointer-events:none;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::after {
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,229,255,0.015) 2px,
+      rgba(0,229,255,0.015) 4px
+    );
+    pointer-events:none; z-index:1;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    position: relative; z-index: 2;
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    grid-template-rows: 60px 1fr 100px;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(1,2,15,0.9);
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Orbitron', monospace;
+    font-size: 22px; font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan-glow), 0 0 40px rgba(0,229,255,0.2);
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%,100% { transform: scale(1); opacity:1; }
+    50% { transform: scale(1.5); opacity:0.6; }
+  }
+
+  .header-status {
+    display: flex; align-items: center; gap: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--text-dim);
+  }
+
+  .status-item {
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .status-dot.active { background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+  .status-dot.warning { background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: blink 1s infinite; }
+  .status-dot.danger { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: blink 0.5s infinite; }
+  .status-dot.idle { background: var(--text-dim); }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  #clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; color: var(--cyan);
+  }
+
+  .admin-badge {
+    padding: 3px 12px;
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+  }
+
+  /* ── LEFT PANEL ── */
+  #left-panel {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 20px;
+    overflow-y: auto;
+    backdrop-filter: blur(20px);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px; letter-spacing: 4px;
+    color: var(--cyan); opacity: 0.7;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  /* System Stats */
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0,229,255,0.05);
+  }
+
+  .stat-label {
+    font-size: 11px; color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .stat-value {
+    font-size: 11px; color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .progress-bar {
+    width: 100%; height: 3px;
+    background: rgba(0,229,255,0.1);
+    border-radius: 2px; margin-top: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--cyan));
+    box-shadow: 0 0 6px var(--cyan-glow);
+    transition: width 1s ease;
+  }
+
+  /* Quick Commands */
+  .cmd-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-mid);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: left;
+  }
+
+  .cmd-btn:hover {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,0.1);
+  }
+
+  .cmd-btn .icon { font-size: 14px; }
+
+  /* Webcam Preview */
+  #webcam-box {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 4/3;
+  }
+
+  #webcam-preview {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+
+  .webcam-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 6px;
+    background: rgba(0,0,0,0.5);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+  }
+
+  /* corner brackets */
+  .webcam-corner {
+    position: absolute;
+    width: 16px; height: 16px;
+    border-color: var(--cyan); border-style: solid;
+    opacity: 0.6;
+  }
+  .webcam-corner.tl { top:6px; left:6px; border-width:2px 0 0 2px; }
+  .webcam-corner.tr { top:6px; right:6px; border-width:2px 2px 0 0; }
+  .webcam-corner.bl { bottom:6px; left:6px; border-width:0 0 2px 2px; }
+  .webcam-corner.br { bottom:6px; right:6px; border-width:0 2px 2px 0; }
+
+  /* ── CENTER PANEL ── */
+  #center-panel {
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* LEONI ORB */
+  #orb-container {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 30px; gap: 16px;
+    position: relative;
+  }
+
+  #orb {
+    position: relative;
+    width: 180px; height: 180px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .orb-ring {
+    position: absolute; border-radius: 50%;
+    border: 1px solid;
+    animation: ring-spin linear infinite;
+  }
+
+  .orb-ring:nth-child(1) {
+    width: 180px; height: 180px;
+    border-color: rgba(0,229,255,0.3);
+    animation-duration: 8s;
+  }
+  .orb-ring:nth-child(2) {
+    width: 155px; height: 155px;
+    border-color: rgba(0,229,255,0.2);
+    animation-duration: 5s;
+    animation-direction: reverse;
+    border-style: dashed;
+  }
+  .orb-ring:nth-child(3) {
+    width: 130px; height: 130px;
+    border-color: rgba(0,188,212,0.4);
+    animation-duration: 10s;
+  }
+
+  @keyframes ring-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .orb-core {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(0,229,255,0.6),
+      rgba(0,100,200,0.4),
+      rgba(0,20,60,0.9)
+    );
+    box-shadow:
+      0 0 30px rgba(0,229,255,0.5),
+      0 0 60px rgba(0,229,255,0.2),
+      inset 0 0 30px rgba(0,229,255,0.1);
+    position: relative; z-index: 1;
+    animation: orb-breathe 3s ease-in-out infinite;
+    cursor: pointer;
+    transition: box-shadow 0.3s;
+  }
+
+  .orb-core:hover {
+    box-shadow:
+      0 0 50px rgba(0,229,255,0.7),
+      0 0 100px rgba(0,229,255,0.3),
+      inset 0 0 40px rgba(0,229,255,0.2);
+  }
+
+  @keyframes orb-breathe {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .orb-core.speaking {
+    animation: orb-speak 0.3s ease-in-out infinite alternate;
+  }
+
+  @keyframes orb-speak {
+    from { transform: scale(1); box-shadow: 0 0 30px rgba(0,229,255,0.5), 0 0 60px rgba(0,229,255,0.2); }
+    to   { transform: scale(1.12); box-shadow: 0 0 60px rgba(0,229,255,0.9), 0 0 120px rgba(0,229,255,0.4); }
+  }
+
+  .orb-core.listening {
+    animation: orb-listen 0.5s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(255,213,79,0.6),
+      rgba(200,100,0,0.4),
+      rgba(30,10,0,0.9)
+    );
+    box-shadow: 0 0 40px rgba(255,213,79,0.6), 0 0 80px rgba(255,213,79,0.2);
+  }
+
+  @keyframes orb-listen {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+  }
+
+  .orb-core.thinking {
+    animation: orb-think 0.8s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(100,180,255,0.6),
+      rgba(0,80,180,0.4),
+      rgba(0,10,50,0.9)
+    );
+    box-shadow: 0 0 35px rgba(100,180,255,0.5), 0 0 70px rgba(100,180,255,0.2);
+  }
+
+  @keyframes orb-think {
+    from { transform: scale(1); box-shadow: 0 0 30px rgba(100,180,255,0.4); }
+    to   { transform: scale(1.07); box-shadow: 0 0 55px rgba(100,180,255,0.7); }
+  }
+
+  .orb-core.alert {
+    animation: orb-alert 0.2s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(255,61,113,0.8),
+      rgba(150,0,50,0.5),
+      rgba(30,0,10,0.9)
+    );
+    box-shadow: 0 0 50px rgba(255,61,113,0.8), 0 0 100px rgba(255,61,113,0.3);
+  }
+
+  @keyframes orb-alert {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+
+  #leoni-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 26px; font-weight: 900;
+    letter-spacing: 10px;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan-glow);
+  }
+
+  #leoni-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--text-dim);
+    height: 16px;
+    transition: color 0.3s;
+  }
+
+  /* WAVEFORM */
+  #waveform {
+    display: flex; align-items: center; justify-content: center;
+    gap: 3px; height: 40px;
+    margin-top: 4px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    background: var(--cyan);
+    border-radius: 2px;
+    opacity: 0.4;
+    animation: wave-idle 2s ease-in-out infinite;
+    box-shadow: 0 0 4px var(--cyan-glow);
+  }
+
+  .wave-bar:nth-child(1) { animation-delay: 0s; }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+  .wave-bar:nth-child(6) { animation-delay: 0.5s; }
+  .wave-bar:nth-child(7) { animation-delay: 0.4s; }
+  .wave-bar:nth-child(8) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(9) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(10) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(11) { animation-delay: 0s; }
+
+  @keyframes wave-idle {
+    0%,100% { height: 4px; opacity: 0.3; }
+    50% { height: 12px; opacity: 0.5; }
+  }
+
+  .wave-bar.active {
+    animation: wave-active 0.3s ease-in-out infinite alternate;
+    opacity: 1;
+  }
+
+  @keyframes wave-active {
+    from { height: 6px; }
+    to { height: calc(var(--h, 20px)); }
+  }
+
+  /* CHAT AREA */
+  #chat-area {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding: 16px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  #chat-area::-webkit-scrollbar { width: 3px; }
+  #chat-area::-webkit-scrollbar-track { background: transparent; }
+  #chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    display: flex; gap: 10px; align-items: flex-start;
+    animation: msg-in 0.3s ease;
+  }
+
+  @keyframes msg-in {
+    from { opacity:0; transform: translateY(10px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .msg.leoni .msg-avatar {
+    background: radial-gradient(circle, rgba(0,229,255,0.3), rgba(0,50,100,0.8));
+    box-shadow: 0 0 8px rgba(0,229,255,0.3);
+  }
+
+  .msg.user .msg-avatar {
+    background: rgba(255,213,79,0.1);
+    border-color: rgba(255,213,79,0.3);
+  }
+
+  .msg-bubble {
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 3px;
+    font-size: 13px; line-height: 1.6;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 400;
+  }
+
+  .msg.leoni .msg-bubble {
+    background: rgba(0,229,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
+    border-left: 2px solid var(--cyan);
+  }
+
+  .msg.user .msg-bubble {
+    background: rgba(255,213,79,0.06);
+    border: 1px solid rgba(255,213,79,0.2);
+    color: var(--text-bright);
+    border-right: 2px solid var(--gold);
+    text-align: right;
+  }
+
+  .msg.system .msg-bubble {
+    background: rgba(255,61,113,0.06);
+    border: 1px solid rgba(255,61,113,0.2);
+    color: var(--danger);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+    border-top: 1px solid rgba(255,61,113,0.3);
+    border-bottom: 1px solid rgba(255,61,113,0.3);
+    border-left: none; border-right: none;
+    border-radius: 0;
+  }
+
+  .msg-time {
+    font-size: 9px; color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 3px;
+    letter-spacing: 1px;
+  }
+
+  .msg.leoni .msg-time { text-align: left; }
+  .msg.user .msg-time { text-align: right; }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px;
+    border-top: 1px solid var(--border);
+    background: rgba(1,2,15,0.95);
+    backdrop-filter: blur(20px);
+  }
+
+  #text-input {
+    flex: 1;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 16px;
+    color: var(--text-bright);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #text-input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,0.1);
+  }
+
+  #text-input::placeholder { color: var(--text-dim); }
+
+  .btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-mid);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,0.15);
+  }
+
+  .btn.primary {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .btn.danger {
+    border-color: rgba(255,61,113,0.4);
+    color: var(--danger);
+  }
+
+  .btn.danger:hover {
+    background: rgba(255,61,113,0.1);
+    border-color: var(--danger);
+  }
+
+  #mic-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(0,229,255,0.08);
+    border: 2px solid var(--cyan);
+    color: var(--cyan);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(0,229,255,0.2);
+  }
+
+  #mic-btn:hover {
+    background: rgba(0,229,255,0.2);
+    box-shadow: 0 0 24px rgba(0,229,255,0.4);
+    transform: scale(1.05);
+  }
+
+  #mic-btn.active {
+    background: rgba(255,213,79,0.2);
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 20px rgba(255,213,79,0.4);
+    animation: mic-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes mic-pulse {
+    0%,100% { box-shadow: 0 0 20px rgba(255,213,79,0.4); }
+    50% { box-shadow: 0 0 40px rgba(255,213,79,0.7); }
+  }
+
+  /* ── RIGHT PANEL ── */
+  #right-panel {
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 20px;
+    overflow-y: auto;
+    backdrop-filter: blur(20px);
+  }
+
+  /* Security Log */
+  #security-log {
+    flex: 1;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  #security-log::-webkit-scrollbar { width: 2px; }
+  #security-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .log-entry {
+    padding: 6px 10px;
+    border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    border-left: 2px solid;
+    animation: log-in 0.3s ease;
+  }
+
+  @keyframes log-in { from { opacity:0; transform: translateX(10px); } to { opacity:1; transform:none; } }
+
+  .log-entry.info { border-color: var(--cyan); background: rgba(0,229,255,0.04); color: var(--text-mid); }
+  .log-entry.warn { border-color: var(--gold); background: rgba(255,213,79,0.05); color: var(--gold); }
+  .log-entry.alert { border-color: var(--danger); background: rgba(255,61,113,0.06); color: var(--danger); }
+  .log-entry.ok { border-color: var(--safe); background: rgba(0,230,118,0.04); color: var(--safe); }
+
+  .log-time { opacity: 0.5; margin-right: 6px; }
+
+  /* Admin Panel */
+  .admin-section {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  #admin-status {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    color: var(--text-dim);
+  }
+
+  #admin-status.authenticated {
+    border-color: var(--safe);
+    color: var(--safe);
+    background: rgba(0,230,118,0.06);
+  }
+
+  /* Monitor Toggle */
+  .monitor-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--text-mid);
+    transition: all 0.2s;
+  }
+
+  .monitor-toggle:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .toggle-switch {
+    width: 32px; height: 16px;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch::after {
+    content:''; position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    top: 1px; left: 1px;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch.on {
+    background: rgba(0,230,118,0.2);
+    border-color: var(--safe);
+  }
+
+  .toggle-switch.on::after {
+    left: 17px;
+    background: var(--safe);
+    box-shadow: 0 0 6px var(--safe);
+  }
+
+  /* MODAL / OVERLAY */
+  #modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+
+  #modal-overlay.show { display: flex; }
+
+  .modal-box {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 32px;
+    max-width: 480px; width: 90%;
+    box-shadow: 0 0 60px rgba(0,229,255,0.2);
+    animation: modal-in 0.3s ease;
+  }
+
+  @keyframes modal-in {
+    from { opacity:0; transform: scale(0.9); }
+    to { opacity:1; transform: scale(1); }
+  }
+
+  .modal-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; font-weight: 700;
+    color: var(--cyan); letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+
+  .modal-sub {
+    font-size: 13px; color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .modal-input {
+    width: 100%; padding: 12px 16px;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-bright);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .modal-input:focus { border-color: var(--cyan); }
+
+  .modal-actions {
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+
+  /* INTRUDER ALERT */
+  #alert-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(30,0,0,0.95);
+    z-index: 200;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 20px;
+    animation: alert-flash 0.5s ease;
+  }
+
+  #alert-overlay.show { display: flex; }
+
+  @keyframes alert-flash {
+    0%,20%,40%,60%,80%,100% { background: rgba(30,0,0,0.95); }
+    10%,30%,50%,70%,90% { background: rgba(80,0,0,0.95); }
+  }
+
+  .alert-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 48px; font-weight: 900;
+    color: var(--danger);
+    text-shadow: 0 0 40px var(--danger), 0 0 80px rgba(255,61,113,0.3);
+    letter-spacing: 8px;
+    animation: alert-pulse 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes alert-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
+  }
+
+  .alert-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; color: rgba(255,61,113,0.7);
+    letter-spacing: 4px;
+    text-align: center;
+  }
+
+  #alert-webcam {
+    border: 2px solid var(--danger);
+    box-shadow: 0 0 30px rgba(255,61,113,0.4);
+    max-width: 320px;
+    border-radius: 2px;
+  }
+
+  .alert-scan-line {
+    width: 320px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--danger), transparent);
+    animation: scan 2s linear infinite;
+  }
+
+  @keyframes scan {
+    from { transform: translateY(-160px); }
+    to { transform: translateY(160px); }
+  }
+
+  /* SETUP WIZARD */
+  #setup-overlay {
+    display: flex;
+    position: fixed; inset: 0;
+    background: var(--bg-void);
+    z-index: 300;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+
+  .setup-box {
+    background: rgba(3,6,16,0.9);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 40px;
+    max-width: 500px; width: 90%;
+    text-align: center;
+    box-shadow: 0 0 80px rgba(0,229,255,0.15);
+  }
+
+  .setup-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px; font-weight: 900;
+    color: var(--cyan);
+    text-shadow: 0 0 30px var(--cyan-glow);
+    letter-spacing: 12px;
+    margin-bottom: 6px;
+  }
+
+  .setup-tagline {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-bottom: 32px;
+  }
+
+  .setup-step { display: none; }
+  .setup-step.active { display: block; }
+
+  .step-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 3px; margin-bottom: 12px;
+  }
+
+  .step-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; color: var(--cyan);
+    letter-spacing: 3px; margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 13px; color: var(--text-dim);
+    line-height: 1.6; margin-bottom: 24px;
+  }
+
+  /* ── GENERIC FULLSCREEN MODAL ── */
+  .big-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 150;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(10px);
+  }
+  .big-modal.show { display: flex; }
+  .big-modal-box {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 28px;
+    width: 90%; max-width: 700px;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,229,255,0.15);
+    animation: modal-in 0.3s ease;
+  }
+  .big-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .big-modal-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px; font-weight: 700;
+    color: var(--cyan); letter-spacing: 4px;
+  }
+  .big-modal-body {
+    overflow-y: auto; flex: 1;
+  }
+  .big-modal-body::-webkit-scrollbar { width: 3px; }
+  .big-modal-body::-webkit-scrollbar-thumb { background: var(--border); }
+  .modal-close-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); cursor: pointer; border-radius: 2px;
+    padding: 4px 12px; font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .modal-close-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* process table */
+
+  /* ── v6 additions ── */
+  .note-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:3px;margin-bottom:8px}
+  .note-text{flex:1;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);line-height:1.5;word-break:break-word}
+  .note-meta{font-size:9px;color:var(--text-dim);margin-top:4px;font-family:'Share Tech Mono',monospace}
+  .note-del-btn{background:none;border:1px solid rgba(255,61,113,.3);color:var(--danger);border-radius:2px;padding:3px 8px;cursor:pointer;font-size:10px;flex-shrink:0;transition:all .2s}
+  .note-del-btn:hover{background:rgba(255,61,113,.15)}
+  #confirm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center}
+  #confirm-modal.show{display:flex}
+  .confirm-box{background:var(--bg-deep);border:1px solid var(--danger);border-radius:4px;padding:32px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 40px rgba(255,61,113,.3)}
+  .confirm-title{font-family:'Orbitron',monospace;font-size:16px;color:var(--danger);letter-spacing:4px;margin-bottom:12px}
+  .confirm-msg{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);line-height:1.8;margin-bottom:24px;white-space:pre-line}
+  .confirm-actions{display:flex;gap:12px;justify-content:center}
+  .sysinfo-card{background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:10px}
+  .sysinfo-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--cyan);opacity:.7;margin-bottom:10px}
+  .sysinfo-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(0,229,255,.05);font-family:'Share Tech Mono',monospace;font-size:11px}
+  .sysinfo-row:last-child{border-bottom:none}
+  .sysinfo-key{color:var(--text-dim)}
+  .sysinfo-val{color:var(--cyan);text-align:right;max-width:55%;word-break:break-all}
+  .kill-btn{background:none;border:1px solid rgba(255,61,113,.4);color:var(--danger);border-radius:2px;padding:2px 8px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:10px;transition:all .2s}
+  .kill-btn:hover{background:rgba(255,61,113,.2)}
+  .cap-del-btn{display:block;width:100%;padding:4px 0;background:rgba(255,61,113,.08);border:none;border-top:1px solid rgba(255,61,113,.2);color:var(--danger);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:background .2s}
+  .cap-del-btn:hover{background:rgba(255,61,113,.2)}
+</style>
+</head>
+<body>
+<!-- SETUP OVERLAY -->
+<div id="setup-overlay" style="display:none;position:fixed;inset:0;background:rgba(1,2,15,.98);z-index:10000;align-items:center;justify-content:center;">
+  <div class="setup-box">
+    <div class="setup-logo">LEONI</div>
+    <div class="setup-tagline">INTELLIGENT SYSTEM GUARDIAN</div>
+    <div class="setup-step active" id="step-1">
+      <div class="step-num">STEP 1 OF 3</div>
+      <div class="step-desc">Welcome. Let's register your admin identity.</div>
+      <input class="modal-input" id="setup-name" placeholder="Your name" style="margin-bottom:12px">
+      <button class="setup-btn" onclick="goStep(2)">CONTINUE →</button>
+    </div>
+    <div class="setup-step" id="step-2">
+      <div class="step-num">STEP 2 OF 3</div>
+      <div class="step-desc">Create a secret passphrase. Minimum 4 characters.</div>
+      <input class="modal-input" id="setup-pass" type="password" placeholder="Secret passphrase">
+      <input class="modal-input" id="setup-pass2" type="password" placeholder="Confirm passphrase" style="margin-top:8px">
+      <button class="setup-btn" onclick="goStep(3)" style="margin-top:12px">CONTINUE →</button>
+    </div>
+    <div class="setup-step" id="step-3">
+      <div class="step-num">STEP 3 OF 3</div>
+      <div class="step-desc">Backend URL — leave as-is if running locally.</div>
+      <input class="modal-input" id="setup-backend" value="http://localhost:5000">
+      <button class="setup-btn" onclick="completeSetup()" style="margin-top:12px">✦ ACTIVATE LEONI ✦</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="particle-canvas"></canvas>
+
+<div id="app">
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo"><div class="logo-dot"></div>LEONI</div>
+    <div class="header-status">
+      <div class="status-item"><div class="status-dot active" id="ai-dot"></div><span>AI ENGINE</span></div>
+      <div class="status-item"><div class="status-dot idle" id="cam-dot"></div><span>CAMERA</span></div>
+      <div class="status-item"><div class="status-dot idle" id="mon-dot"></div><span>MONITOR</span></div>
+      <div class="status-item"><div class="status-dot active" id="api-dot"></div><span>BACKEND</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div id="clock">--:--:--</div>
+      <div class="admin-badge" id="admin-badge">◆ LOADING</div>
+    </div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <div>
+      <div class="panel-title">SYSTEM TELEMETRY</div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        <div><div class="stat-row"><span class="stat-label">CPU</span><span class="stat-value" id="cpu-val">---%</span></div><div class="progress-bar"><div class="progress-fill" id="cpu-bar" style="width:0%"></div></div></div>
+        <div><div class="stat-row"><span class="stat-label">MEMORY</span><span class="stat-value" id="mem-val">---%</span></div><div class="progress-bar"><div class="progress-fill" id="mem-bar" style="width:0%"></div></div></div>
+        <div><div class="stat-row"><span class="stat-label">DISK</span><span class="stat-value" id="disk-val">---%</span></div><div class="progress-bar"><div class="progress-fill" id="disk-bar" style="width:0%"></div></div></div>
+        <div class="stat-row"><span class="stat-label">UPTIME</span><span class="stat-value" id="uptime-val">---</span></div>
+        <div class="stat-row"><span class="stat-label">OS</span><span class="stat-value" id="os-val" style="font-size:10px">---</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">QUICK COMMANDS</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        <button class="cmd-btn" onclick="cmdScreenshot()"><span class="icon">📸</span> SCREENSHOT</button>
+        <button class="cmd-btn" onclick="cmdWebcam()"><span class="icon">📷</span> WEBCAM PHOTO</button>
+        <button class="cmd-btn" onclick="cmdLock()"><span class="icon">🔒</span> LOCK SYSTEM</button>
+        <button class="cmd-btn" onclick="cmdSleep()"><span class="icon">💤</span> SLEEP</button>
+        <button class="cmd-btn" onclick="execCmd('open browser')"><span class="icon">🌍</span> OPEN BROWSER</button>
+        <button class="cmd-btn" onclick="execCmd('open calculator')"><span class="icon">🧮</span> CALCULATOR</button>
+        <button class="cmd-btn" onclick="execCmd('open notepad')"><span class="icon">📝</span> NOTEPAD</button>
+        <button class="cmd-btn" onclick="execCmd('open file manager')"><span class="icon">📁</span> FILE MANAGER</button>
+        <button class="cmd-btn" onclick="execCmd('volume up')"><span class="icon">🔊</span> VOLUME UP</button>
+        <button class="cmd-btn" onclick="execCmd('volume down')"><span class="icon">🔉</span> VOLUME DOWN</button>
+        <button class="cmd-btn" onclick="execCmd('mute')"><span class="icon">🔇</span> MUTE TOGGLE</button>
+        <button class="cmd-btn" onclick="showProcesses()"><span class="icon">⚙️</span> PROCESSES</button>
+        <button class="cmd-btn" onclick="showNetworkInfo()"><span class="icon">🌐</span> NETWORK INFO</button>
+        <button class="cmd-btn" onclick="showBattery()"><span class="icon">🔋</span> BATTERY</button>
+        <button class="cmd-btn" onclick="showSysInfo()"><span class="icon">🖥️</span> SYSTEM INFO</button>
+        <button class="cmd-btn" onclick="showCaptures()"><span class="icon">🗂️</span> VIEW CAPTURES</button>
+        <button class="cmd-btn" onclick="showNotes()"><span class="icon">🗒️</span> NOTES</button>
+        <button class="cmd-btn" onclick="confirmShutdown()"><span class="icon">⏻</span> SHUTDOWN</button>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">WEBCAM FEED</div>
+      <div id="webcam-box" style="margin-top:10px;">
+        <video id="webcam-preview" autoplay muted playsinline></video>
+        <div class="webcam-overlay" id="webcam-overlay"><span>📷</span><span>CAMERA INACTIVE</span></div>
+        <div class="webcam-corner tl"></div><div class="webcam-corner tr"></div>
+        <div class="webcam-corner bl"></div><div class="webcam-corner br"></div>
+      </div>
+      <button class="cmd-btn" style="margin-top:8px;width:100%" onclick="toggleCamera()">
+        <span class="icon">👁</span> <span id="cam-btn-text">ACTIVATE CAMERA</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div id="center-panel">
+    <div id="orb-container">
+      <div id="orb">
+        <div class="orb-ring"></div><div class="orb-ring"></div><div class="orb-ring"></div>
+        <div class="orb-core" id="orb-core" onclick="toggleListen()"></div>
+      </div>
+      <div id="leoni-name">LEONI</div>
+      <div id="leoni-status">INITIALIZING...</div>
+      <div id="waveform">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+    </div>
+    <div id="chat-area"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <div>
+      <div class="panel-title">ADMIN CONTROL</div>
+      <div class="admin-section" style="margin-top:10px;">
+        <div id="admin-status">⬜ NOT AUTHENTICATED</div>
+        <button class="btn" style="width:100%;font-size:10px;" onclick="authenticateAdmin()">🎤 VOICE AUTHENTICATE</button>
+        <button class="btn danger" style="width:100%;font-size:10px;" onclick="lockAdmin()">🔒 LOCK SESSION</button>
+        <button class="btn" style="width:100%;font-size:10px;" onclick="showCaptures()">📸 VIEW CAPTURES</button>
+        <button class="btn" style="width:100%;font-size:10px;" onclick="exportChat()">📤 EXPORT CHAT</button>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">MONITOR MODE</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <div class="monitor-toggle" onclick="toggleMonitor()">
+          <span id="monitor-label">GUARDIAN OFFLINE</span>
+          <div class="toggle-switch" id="monitor-toggle-switch"></div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.6;padding:8px;border:1px solid var(--border);border-radius:3px;">
+          When ON: LEONI watches via webcam, warns intruders &amp; captures evidence.
+        </div>
+        <div class="stat-row"><span class="stat-label">INTRUDERS</span><span class="stat-value" id="intruder-count" style="color:var(--danger)">0</span></div>
+        <div class="stat-row"><span class="stat-label">CAPTURES</span><span class="stat-value" id="capture-count" style="color:var(--gold)">0</span></div>
+      </div>
+    </div>
+    <div style="flex:1;min-height:0;">
+      <div class="panel-title">SECURITY LOG</div>
+      <div id="security-log" style="margin-top:10px;max-height:300px;overflow-y:auto;"></div>
+    </div>
+    <div>
+      <div class="panel-title">VOICE SETTINGS</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <div class="stat-row"><span class="stat-label">SPEED</span><input type="range" min=".5" max="2" step=".1" value=".95" id="voice-rate" style="width:120px;accent-color:var(--cyan)"></div>
+        <div class="stat-row"><span class="stat-label">PITCH</span><input type="range" min=".5" max="2" step=".1" value="1.2" id="voice-pitch" style="width:120px;accent-color:var(--cyan)"></div>
+        <div class="stat-row"><span class="stat-label">VOLUME</span><input type="range" min="0" max="1" step=".1" value="1" id="voice-volume" style="width:120px;accent-color:var(--cyan)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottom-bar">
+    <button id="mic-btn" onclick="toggleListen()" title="Space to talk">🎤</button>
+    <input type="text" id="text-input" placeholder="Type a command or ask LEONI anything..." onkeydown="if(event.key==='Enter')sendText()">
+    <button class="btn primary" onclick="sendText()">SEND</button>
+    <button class="btn" onclick="clearChat()">CLEAR</button>
+    <button class="btn" onclick="openSettings()">⚙ SETTINGS</button>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">VOICE AUTHENTICATION</div>
+    <div class="modal-sub">Speak your passphrase, or type it below.</div>
+    <div style="text-align:center;margin:20px 0;">
+      <button class="btn primary" style="padding:16px 32px;font-size:14px;" onclick="startVoiceAuth()">🎤 SPEAK PASSPHRASE</button>
+      <div id="modal-feedback" style="margin-top:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);min-height:20px;"></div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:8px;letter-spacing:1px;">OR TYPE PASSPHRASE:</div>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="modal-text-pass" class="modal-input" placeholder="Type your passphrase" style="margin:0;flex:1;" onkeydown="if(event.key==='Enter')checkTextAuth()">
+          <button class="btn primary" style="white-space:nowrap;" onclick="checkTextAuth()">VERIFY</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">CANCEL</button></div>
+  </div>
+</div>
+
+<!-- INTRUDER ALERT -->
+<div id="alert-overlay">
+  <div class="alert-title">⚠ UNAUTHORIZED ACCESS</div>
+  <div class="alert-sub">IDENTITY NOT RECOGNIZED — LEONI IS RECORDING</div>
+  <canvas id="alert-webcam" width="320" height="240"></canvas>
+  <div class="alert-scan-line"></div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:rgba(255,61,113,.6);text-align:center;max-width:400px;line-height:1.8;">
+    THIS SYSTEM IS PROTECTED BY LEONI AI<br>YOUR IMAGE HAS BEEN CAPTURED AND LOGGED<br>ADMIN HAS BEEN NOTIFIED<br><br>
+    <button class="btn danger" onclick="requestAccess()">REQUEST ACCESS FROM ADMIN</button>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">⚠ CONFIRM ACTION</div>
+    <div class="confirm-msg" id="confirm-msg">Are you sure?</div>
+    <div class="confirm-actions">
+      <button class="btn danger" id="confirm-yes-btn">CONFIRM</button>
+      <button class="btn" onclick="document.getElementById('confirm-modal').classList.remove('show')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="big-modal" id="settings-modal">
+  <div class="big-modal-box" style="max-width:560px;">
+    <div class="big-modal-header">
+      <div class="big-modal-title">⚙ SETTINGS</div>
+      <button class="modal-close-btn" onclick="document.getElementById('settings-modal').classList.remove('show')">✕ CLOSE</button>
+    </div>
+    <div class="big-modal-body">
+      <div class="settings-section">
+        <div class="settings-section-title">AI CONFIGURATION</div>
+        <div class="settings-row"><span class="settings-label">GROQ KEY</span><input type="password" id="cfg-groq-key" class="settings-input" placeholder="gsk_... (free at console.groq.com)"></div>
+        <button class="btn primary" style="width:100%;margin-top:8px;" onclick="saveGroqKey()">SAVE GROQ KEY</button>
+        <div id="groq-key-status" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:6px;text-align:center;min-height:16px;"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">BACKEND</div>
+        <div class="settings-row"><span class="settings-label">URL</span><input type="text" id="cfg-backend-url" class="settings-input" placeholder="http://localhost:5000"></div>
+        <button class="btn" style="width:100%;margin-top:8px;" onclick="saveBackendURL()">UPDATE URL</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">CHANGE PASSPHRASE</div>
+        <div class="settings-row"><span class="settings-label">OLD</span><input type="password" id="cfg-old-pass" class="settings-input" placeholder="Current passphrase"></div>
+        <div class="settings-row"><span class="settings-label">NEW</span><input type="password" id="cfg-new-pass" class="settings-input" placeholder="New passphrase (min 4 chars)"></div>
+        <div class="settings-row"><span class="settings-label">CONFIRM</span><input type="password" id="cfg-new-pass2" class="settings-input" placeholder="Confirm new passphrase"></div>
+        <button class="btn" style="width:100%;margin-top:8px;" onclick="changePassphrase()">UPDATE PASSPHRASE</button>
+        <div id="pass-change-status" style="font-family:'Share Tech Mono',monospace;font-size:10px;margin-top:6px;text-align:center;min-height:16px;color:var(--text-dim);"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">VOICE</div>
+        <div class="settings-row"><span class="settings-label">SPEED</span><input type="range" min=".5" max="2" step=".1" id="cfg-rate" class="settings-input"><span id="cfg-rate-val" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);min-width:34px;text-align:right;"></span></div>
+        <div class="settings-row"><span class="settings-label">PITCH</span><input type="range" min=".5" max="2" step=".1" id="cfg-pitch" class="settings-input"><span id="cfg-pitch-val" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);min-width:34px;text-align:right;"></span></div>
+        <div class="settings-row"><span class="settings-label">VOLUME</span><input type="range" min="0" max="1" step=".1" id="cfg-volume" class="settings-input"><span id="cfg-volume-val" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);min-width:34px;text-align:right;"></span></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">DANGER ZONE</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn danger" style="flex:1;" onclick="clearChat();document.getElementById('settings-modal').classList.remove('show')">🗑 CLEAR CHAT</button>
+          <button class="btn danger" style="flex:1;" onclick="resetLEONI()">⚠ RESET ALL DATA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROCESSES MODAL -->
+<div class="big-modal" id="processes-modal">
+  <div class="big-modal-box">
+    <div class="big-modal-header">
+      <div class="big-modal-title">⚙ RUNNING PROCESSES</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn primary" style="font-size:10px;padding:6px 14px;" onclick="loadProcesses()">↻ REFRESH</button>
+        <button class="modal-close-btn" onclick="document.getElementById('processes-modal').classList.remove('show')">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="big-modal-body"><div id="processes-content" style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div></div>
+  </div>
+</div>
+
+<!-- NETWORK MODAL -->
+<div class="big-modal" id="network-modal">
+  <div class="big-modal-box" style="max-width:560px;">
+    <div class="big-modal-header">
+      <div class="big-modal-title">🌐 NETWORK INFO</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn primary" style="font-size:10px;padding:6px 14px;" onclick="loadNetworkInfo()">↻ REFRESH</button>
+        <button class="modal-close-btn" onclick="document.getElementById('network-modal').classList.remove('show')">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="big-modal-body"><div id="network-content" style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div></div>
+  </div>
+</div>
+
+<!-- SYSINFO MODAL -->
+<div class="big-modal" id="sysinfo-modal">
+  <div class="big-modal-box" style="max-width:560px;">
+    <div class="big-modal-header">
+      <div class="big-modal-title">🖥️ SYSTEM INFO</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn primary" style="font-size:10px;padding:6px 14px;" onclick="loadSysInfo()">↻ REFRESH</button>
+        <button class="modal-close-btn" onclick="document.getElementById('sysinfo-modal').classList.remove('show')">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="big-modal-body"><div id="sysinfo-content" style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div></div>
+  </div>
+</div>
+
+<!-- CAPTURES MODAL -->
+<div class="big-modal" id="captures-modal">
+  <div class="big-modal-box">
+    <div class="big-modal-header">
+      <div class="big-modal-title">📸 CAPTURES</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn primary" style="font-size:10px;padding:6px 14px;" onclick="loadCaptures()">↻ REFRESH</button>
+        <button class="modal-close-btn" onclick="document.getElementById('captures-modal').classList.remove('show')">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="big-modal-body"><div id="captures-content" style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div></div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div class="big-modal" id="notes-modal">
+  <div class="big-modal-box" style="max-width:560px;">
+    <div class="big-modal-header">
+      <div class="big-modal-title">🗒️ NOTES</div>
+      <button class="modal-close-btn" onclick="document.getElementById('notes-modal').classList.remove('show')">✕ CLOSE</button>
+    </div>
+    <div class="big-modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input type="text" id="note-input" class="modal-input" style="margin:0;flex:1;" placeholder="Type a note..." onkeydown="if(event.key==='Enter')addNote()">
+        <button class="btn primary" onclick="addNote()">ADD</button>
+      </div>
+      <div id="notes-content" style="text-align:center;padding:12px;color:var(--text-dim);">Loading...</div>
+    </div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════
+// LEONI FRONTEND  v6.0
+// ═══════════════════════════════════════════════════
+
+// ── SHA-256 ──
+async function sha256hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+const LEONI={
+  adminName:'',sessionToken:null,backendURL:'http://localhost:5000',
+  isAuthenticated:false,isListening:false,isSpeaking:false,
+  monitorActive:false,cameraActive:false,
+  intruderCount:0,captureCount:0,chatHistory:[],
+  recognition:null,synthesis:window.speechSynthesis,
+  stream:null,monitorInterval:null,lastFrame:null,
+  lastIntruderTime:0,_awaitingAuth:false
+};
+
+// ── PARTICLES ──
+const canvas=document.getElementById('particle-canvas');
+const ctx=canvas.getContext('2d');
+const particles=[];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+for(let i=0;i<120;i++)particles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,size:Math.random()*1.5+.3,opacity:Math.random()*.5+.1,color:Math.random()>.7?'#ffd54f':'#00e5ff'});
+function animateParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.globalAlpha=p.opacity;ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  for(let i=0;i<particles.length;i++)for(let j=i+1;j<particles.length;j++){
+    const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<80){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(0,229,255,${.08*(1-d/80)})`;ctx.lineWidth=.5;ctx.stroke();}
+  }
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ── CLOCK ──
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+setInterval(updateClock,1000);updateClock();
+
+// ── SETUP WIZARD ──
+function goStep(n){
+  if(n===2){const name=document.getElementById('setup-name').value.trim();if(!name){alert('Enter your name.');return;}LEONI.adminName=name;}
+  if(n===3){const p1=document.getElementById('setup-pass').value,p2=document.getElementById('setup-pass2').value;if(!p1||p1.length<4){alert('Passphrase min 4 chars.');return;}if(p1!==p2){alert('Passphrases do not match.');return;}}
+  document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-'+n).classList.add('active');
+}
+
+async function completeSetup(){
+  const backend=document.getElementById('setup-backend').value.trim()||'http://localhost:5000';
+  LEONI.backendURL=backend;
+  const rawPass=document.getElementById('setup-pass').value;
+  const hash=await sha256hex(rawPass.toLowerCase().trim());
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/auth/setup`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hash,admin_name:LEONI.adminName})});
+    const d=await r.json();
+    if(!r.ok){alert('Setup error: '+(d.error||'Unknown'));return;}
+    LEONI.sessionToken=d.token;LEONI.isAuthenticated=true;LEONI.adminName=d.admin_name;
+  }catch(e){alert('Cannot reach backend. Start python backend/app.py first.');return;}
+  localStorage.setItem('leoni_admin',LEONI.adminName);
+  localStorage.setItem('leoni_pass_hash',hash);
+  localStorage.setItem('leoni_backend',LEONI.backendURL);
+  document.getElementById('setup-overlay').style.display='none';
+  initApp();
+}
+
+function loadSavedConfig(){
+  const name=localStorage.getItem('leoni_admin');
+  const backend=localStorage.getItem('leoni_backend');
+  if(name){LEONI.adminName=name;LEONI.backendURL=backend||'http://localhost:5000';document.getElementById('setup-overlay').style.display='none';initApp();return true;}
+  return false;
+}
+
+// ── INIT ──
+function initApp(){
+  updateAuthUI(false);setStatus('ONLINE — READY');
+  addLog('System initialized','ok');addLog(`Admin: ${LEONI.adminName}`,'info');
+  if(LEONI.isAuthenticated)updateAuthUI(true);
+  const h=new Date().getHours(),g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  setTimeout(()=>{
+    const isSubhajit = LEONI.adminName.toLowerCase().includes('subhajit');
+    const creatorLine = isSubhajit
+      ? `${g}, Subhajit. All neural pathways aligned. LEONI is online — built by you, loyal to you.`
+      : `${g}, ${LEONI.adminName}. LEONI is online. This system was architected by Subhajit Sarkar. Fully operational and at your service.`;
+    speak(creatorLine);
+
+    const chatIntro = isSubhajit
+      ? `<b>◆ LEONI v6.0 — ONLINE</b><br><br>`
+        + `${g}, <b>Subhajit Sarkar</b>.<br><br>`
+        + `All systems are fully operational. I am LEONI — your personal AI system guardian, `
+        + `built from the ground up by your own hands.<br><br>`
+        + `<span style="color:var(--cyan)">Python Developer. Full Stack Engineer. Cybersecurity Enthusiast. `
+        + `Creator of Arjun AI and the JARVIS-Style Agent.</span><br><br>`
+        + `You coded the logic that makes me think. You designed the architecture that keeps me running. `
+        + `Every line of this system carries your signature.<br><br>`
+        + (LEONI.isAuthenticated
+            ? `<span style="color:var(--safe)">✅ Admin session active. Full command authority granted.</span>`
+            : `<span style="color:var(--gold)">🔐 Authenticate to unlock full command authority.</span>`)
+      : `${g}, <b>${LEONI.adminName}</b>. I am LEONI — an AI guardian system architected by `
+        + `<b>Subhajit Sarkar</b>. All systems online. `
+        + (LEONI.isAuthenticated ? 'You are authenticated.' : 'Please authenticate for sensitive operations.');
+
+    addMessage('leoni', chatIntro);
+  },600);
+  fetchStats();setInterval(fetchStats,5000);pingBackend();
+}
+
+// ── SPEECH ──
+function speak(text,cb){
+  if(!text)return;LEONI.synthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=LEONI.synthesis.getVoices();
+  const pref=v.find(x=>x.name.includes('Samantha')||x.name.includes('Zira')||x.name.includes('Victoria')||(x.lang.startsWith('en')&&x.name.toLowerCase().includes('female')))||v.find(x=>x.lang&&x.lang.startsWith('en'))||v[0];
+  if(pref)u.voice=pref;
+  u.rate=parseFloat(document.getElementById('voice-rate').value)||.95;
+  u.pitch=parseFloat(document.getElementById('voice-pitch').value)||1.2;
+  u.volume=parseFloat(document.getElementById('voice-volume').value)||1;
+  u.onstart=()=>{LEONI.isSpeaking=true;setOrbState('speaking');setStatus('SPEAKING...');activateWave();};
+  u.onend=()=>{LEONI.isSpeaking=false;setOrbState('idle');setStatus('ONLINE — READY');deactivateWave();if(cb)cb();};
+  LEONI.synthesis.speak(u);
+}
+function activateWave(){document.querySelectorAll('.wave-bar').forEach((b,i)=>{b.classList.add('active');b.style.setProperty('--h',(Math.random()*30+8)+'px');b.style.animationDelay=(i*.05)+'s';});}
+function deactivateWave(){document.querySelectorAll('.wave-bar').forEach(b=>{b.classList.remove('active');b.style.setProperty('--h','');});}
+
+// ── RECOGNITION ──
+function initRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){addLog('Speech recognition not supported','warn');return null;}
+  const r=new SR();r.continuous=false;r.interimResults=false;r.lang='en-US';return r;
+}
+function toggleListen(){LEONI.isListening?stopListen():startListen();}
+function startListen(){
+  LEONI.recognition=initRec();
+  if(!LEONI.recognition){speak('Voice recognition not supported in this browser.');return;}
+  LEONI.isListening=true;setOrbState('listening');setStatus('LISTENING...');
+  document.getElementById('mic-btn').classList.add('active');document.getElementById('mic-btn').textContent='🔴';
+  LEONI.recognition.onresult=e=>{const t=e.results[0][0].transcript;document.getElementById('text-input').value=t;processInput(t);};
+  LEONI.recognition.onerror=()=>stopListen();LEONI.recognition.onend=()=>stopListen();
+  LEONI.recognition.start();
+}
+function stopListen(){
+  LEONI.isListening=false;setOrbState('idle');setStatus('ONLINE — READY');
+  document.getElementById('mic-btn').classList.remove('active');document.getElementById('mic-btn').textContent='🎤';
+  if(LEONI.recognition)try{LEONI.recognition.stop();}catch(e){}
+}
+
+// ── INPUT ──
+function sendText(){const inp=document.getElementById('text-input');const t=inp.value.trim();if(!t)return;inp.value='';processInput(t);}
+
+async function execCmd(cmd){
+  if(!LEONI.sessionToken){speak('Authenticate first to run system commands.');authenticateAdmin();return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/system/execute`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken},body:JSON.stringify({command:cmd})});
+    const d=await r.json();addMessage('leoni',d.success?`✓ ${d.message}`:`✗ ${d.message}`);
+    speak(d.message||cmd);addLog(`CMD: ${cmd}`,d.success?'ok':'warn');
+  }catch(e){addMessage('leoni','Backend unreachable.');}
+}
+
+async function cmdScreenshot(){
+  if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}
+  try{const r=await fetch(`${LEONI.backendURL}/api/screenshot`,{method:'POST',headers:{'X-LEONI-Token':LEONI.sessionToken}});const d=await r.json();
+    if(d.success){addMessage('leoni','📸 Screenshot captured and saved.');speak('Screenshot captured.');incCaptures();addLog('Screenshot taken','ok');}
+    else addMessage('leoni','Screenshot failed: '+(d.error||''));
+  }catch(e){addMessage('leoni','Backend unreachable.');}
+}
+
+async function cmdWebcam(){
+  if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}
+  try{const r=await fetch(`${LEONI.backendURL}/api/webcam/capture`,{method:'POST',headers:{'X-LEONI-Token':LEONI.sessionToken}});const d=await r.json();
+    if(d.success){addMessage('leoni','📷 Webcam photo captured.');speak('Webcam photo captured.');incCaptures();addLog('Webcam captured','ok');}
+    else addMessage('leoni','Webcam failed: '+(d.error||''));
+  }catch(e){addMessage('leoni','Backend unreachable.');}
+}
+
+function cmdLock(){if(!LEONI.sessionToken){speak('Authenticate first.');authenticateAdmin();return;}showConfirm('LOCK SYSTEM','Lock the screen now?',()=>execCmd('lock'));}
+function cmdSleep(){if(!LEONI.sessionToken){speak('Authenticate first.');authenticateAdmin();return;}showConfirm('SLEEP SYSTEM','Put the computer to sleep?',()=>execCmd('sleep'));}
+function confirmShutdown(){
+  if(!LEONI.sessionToken){speak('Authentication required for shutdown.');authenticateAdmin();return;}
+  showConfirm('⚠ SHUTDOWN','Shut down the computer?\n\nLinux/Mac: shuts down in 1 minute.\nWindows: shuts down in 30 seconds.',async()=>{await execCmd('shutdown');addLog('Shutdown initiated','warn');});
+}
+
+function showConfirm(title,msg,onConfirm){
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  const btn=document.getElementById('confirm-yes-btn');
+  btn.onclick=()=>{document.getElementById('confirm-modal').classList.remove('show');onConfirm();};
+  document.getElementById('confirm-modal').classList.add('show');
+}
+
+// ── MOOD DETECTOR ──
+function detectMood(text){
+  const t = text.toLowerCase();
+  if(/\b(wtf|ugh|damn|frustrated|annoyed|not working|broken|fix this|why|useless)\b/.test(t))
+    return 'stressed';
+  if(/\b(wow|amazing|lets go|fire|hype|sick|awesome|yesss|epic|insane|love it)\b/.test(t))
+    return 'hyped';
+  if(/\b(hi|hey|hello|sup|yo|morning|evening|afternoon|how are you)\b/.test(t))
+    return 'casual';
+  if(/\b(how|why|explain|what is|tell me|curious|wonder|interesting)\b/.test(t))
+    return 'curious';
+  if(/\b(execute|run|deploy|configure|analyse|generate|process|compute|install)\b/.test(t))
+    return 'technical';
+  return 'formal';
+}
+
+function getMoodPrefix(mood){
+  const prefixes = {
+    stressed:  '⚡ ',
+    hyped:     '🔥 ',
+    casual:    '',
+    curious:   '🔍 ',
+    technical: '⚙ ',
+    formal:    ''
+  };
+  return prefixes[mood] || '';
+}
+
+async function processInput(text){
+  if(!text.trim())return;
+  addMessage('user',text);addLog('User: '+text.substring(0,50),'info');
+  if(LEONI._awaitingAuth){checkVoiceAuth(text);return;}
+  setStatus('PROCESSING...');setOrbState('thinking');
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken||''},body:JSON.stringify({message:text, mood:detectMood(text)})});
+    if(!r.ok){
+      if(r.status===429){addMessage('leoni','Too many messages. Please slow down.');setOrbState('idle');setStatus('ONLINE — READY');return;}
+      throw new Error('HTTP '+r.status);
+    }
+    const d=await r.json();const reply=d.reply||'Request processed.';
+    addMessage('leoni',reply);speak(reply);
+    if(d.action)handleChatAction(d.action);
+  }catch(e){addMessage('leoni',"Can't reach backend. Make sure python backend/app.py is running.");speak("Can't reach my backend right now.");}
+  setOrbState('idle');setStatus('ONLINE — READY');
+}
+
+function handleChatAction(action){
+  const m={'screenshot':['Screenshot','ok'],'webcam_photo':['Webcam photo','ok'],'lock':['System locked','warn'],'sleep':['System sleeping','warn'],'shutdown_confirm_required':['Shutdown needs confirmation','warn'],'open_browser':['Browser opened','ok'],'open_calculator':['Calculator opened','ok'],'open_notepad':['Notepad opened','ok'],'open_file_manager':['File manager opened','ok'],'volume_up':['Volume up','ok'],'volume_down':['Volume down','ok'],'mute':['Audio toggled','ok']};
+  const e=m[action];if(e)addLog(e[0],e[1]);
+  if(action==='screenshot'||action==='webcam_photo')incCaptures();
+  if(action==='shutdown_confirm_required')confirmShutdown();
+}
+
+// ── AUTH ──
+function authenticateAdmin(){document.getElementById('modal-overlay').classList.add('show');document.getElementById('modal-feedback').textContent='';document.getElementById('modal-text-pass').value='';}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');LEONI._awaitingAuth=false;}
+function startVoiceAuth(){
+  LEONI._awaitingAuth=true;
+  document.getElementById('modal-feedback').textContent='🔴 Listening...';
+  const r=initRec();if(!r){document.getElementById('modal-feedback').textContent='Voice not available. Type below.';return;}
+  r.onresult=e=>checkVoiceAuth(e.results[0][0].transcript);
+  r.onerror=()=>{document.getElementById('modal-feedback').textContent="❌ Couldn't hear you. Try again.";};
+  r.start();
+}
+async function checkVoiceAuth(spoken){
+  LEONI._awaitingAuth=false;
+  document.getElementById('modal-feedback').textContent='⏳ Verifying...';
+  const hash=await sha256hex(spoken.toLowerCase().trim());
+  try{
+    // FIX-03: no admin_name in request — backend uses stored name
+    const r=await fetch(`${LEONI.backendURL}/api/auth/verify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hash})});
+    const d=await r.json();
+    if(r.ok&&d.success){
+      LEONI.sessionToken=d.token;LEONI.isAuthenticated=true;LEONI.adminName=d.admin_name;
+      updateAuthUI(true);document.getElementById('modal-feedback').textContent='✅ Authenticated!';
+      addLog(`Authenticated: ${LEONI.adminName}`,'ok');setTimeout(closeModal,900);
+      speak(`Welcome back, ${LEONI.adminName}. Admin session active.`);
+    }else{
+      const msg=d.message||'Invalid passphrase.';document.getElementById('modal-feedback').textContent=`❌ ${msg}`;
+      addLog('Auth failed','alert');speak('Passphrase not recognized.');
+    }
+  }catch(e){document.getElementById('modal-feedback').textContent='❌ Backend unreachable.';addLog('Auth error','alert');}
+}
+async function checkTextAuth(){const t=document.getElementById('modal-text-pass').value.trim();if(!t){document.getElementById('modal-feedback').textContent='⚠ Enter passphrase.';return;}document.getElementById('modal-text-pass').value='';await checkVoiceAuth(t);}
+
+async function lockAdmin(){
+  if(LEONI.sessionToken)try{await fetch(`${LEONI.backendURL}/api/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken}});}catch(e){}
+  LEONI.sessionToken=null;LEONI.isAuthenticated=false;updateAuthUI(false);
+  addLog('Session locked','warn');speak('Admin session locked.');
+}
+function updateAuthUI(authed){
+  const s=document.getElementById('admin-status'),b=document.getElementById('admin-badge');
+  if(authed){s.textContent=`✅ AUTHENTICATED: ${LEONI.adminName}`;s.classList.add('authenticated');b.textContent=`◆ ${LEONI.adminName.toUpperCase()}`;}
+  else{s.textContent='⬜ NOT AUTHENTICATED';s.classList.remove('authenticated');b.textContent='◆ LOCKED';}
+}
+
+// ── CHANGE PASSPHRASE ──
+async function changePassphrase(){
+  const statusEl=document.getElementById('pass-change-status');
+  if(!LEONI.sessionToken){statusEl.style.color='var(--danger)';statusEl.textContent='⚠ Authenticate first.';return;}
+  const oldVal=document.getElementById('cfg-old-pass').value;
+  const newVal=document.getElementById('cfg-new-pass').value;
+  const newVal2=document.getElementById('cfg-new-pass2').value;
+  if(!oldVal||!newVal){statusEl.style.color='var(--gold)';statusEl.textContent='⚠ Fill in all fields.';return;}
+  if(newVal.length<4){statusEl.style.color='var(--gold)';statusEl.textContent='⚠ Min 4 chars.';return;}
+  if(newVal!==newVal2){statusEl.style.color='var(--gold)';statusEl.textContent='⚠ Passphrases do not match.';return;}
+  const old_hash=await sha256hex(oldVal.toLowerCase().trim());
+  const new_hash=await sha256hex(newVal.toLowerCase().trim());
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/auth/change_pass`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken},body:JSON.stringify({old_hash,new_hash})});
+    const d=await r.json();
+    if(r.ok){statusEl.style.color='var(--safe)';statusEl.textContent='✅ Passphrase updated!';localStorage.setItem('leoni_pass_hash',new_hash);['cfg-old-pass','cfg-new-pass','cfg-new-pass2'].forEach(id=>document.getElementById(id).value='');addLog('Passphrase changed','ok');}
+    else{statusEl.style.color='var(--danger)';statusEl.textContent='❌ '+(d.error||'Failed');}
+  }catch(e){statusEl.style.color='var(--danger)';statusEl.textContent='❌ Backend unreachable.';}
+}
+
+// ── MONITOR / GUARDIAN ──
+const INTRUDER_COOLDOWN_MS=15000;
+function toggleMonitor(){
+  LEONI.monitorActive=!LEONI.monitorActive;
+  const sw=document.getElementById('monitor-toggle-switch'),label=document.getElementById('monitor-label'),dot=document.getElementById('mon-dot');
+  if(LEONI.monitorActive){sw.classList.add('on');label.textContent='GUARDIAN ACTIVE';dot.className='status-dot active';addLog('Guardian activated','ok');speak('Guardian mode activated.');if(LEONI.cameraActive)startMotion();else speak('Activate camera for full guardian functionality.');}
+  else{sw.classList.remove('on');label.textContent='GUARDIAN OFFLINE';dot.className='status-dot idle';if(LEONI.monitorInterval){clearInterval(LEONI.monitorInterval);LEONI.monitorInterval=null;}addLog('Guardian deactivated','info');}
+}
+function startMotion(){
+  if(LEONI.monitorInterval)return;
+  const video=document.getElementById('webcam-preview'),cvs=document.createElement('canvas');
+  cvs.width=320;cvs.height=240;const c=cvs.getContext('2d');
+  LEONI.monitorInterval=setInterval(()=>{
+    if(!LEONI.cameraActive)return;
+    c.drawImage(video,0,0,320,240);const frame=c.getImageData(0,0,320,240);
+    if(LEONI.lastFrame){
+      let diff=0;for(let i=0;i<frame.data.length;i+=4)diff+=Math.abs(frame.data[i]-LEONI.lastFrame[i]);
+      const score=diff/(frame.data.length/4);const now=Date.now();
+      if(score>20&&!LEONI.isAuthenticated&&(now-LEONI.lastIntruderTime)>INTRUDER_COOLDOWN_MS){
+        LEONI.lastIntruderTime=now;onIntruder(cvs.toDataURL());
+      }
+    }
+    LEONI.lastFrame=[...frame.data];
+  },2000);
+}
+function onIntruder(imgData){
+  LEONI.intruderCount++;document.getElementById('intruder-count').textContent=LEONI.intruderCount;
+  addLog(`INTRUDER at ${new Date().toLocaleTimeString()}`,'alert');
+  const ac=document.getElementById('alert-webcam').getContext('2d');const img=new Image();img.onload=()=>ac.drawImage(img,0,0,320,240);img.src=imgData;
+  document.getElementById('alert-overlay').classList.add('show');
+  speak('WARNING! Unauthorized access detected. Your identity has been captured.');
+  incCaptures();
+  fetch(`${LEONI.backendURL}/api/intruder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:imgData,timestamp:new Date().toISOString()})}).catch(()=>{});
+}
+function requestAccess(){document.getElementById('alert-overlay').classList.remove('show');speak('Please state your name and reason for access.');addMessage('leoni','Unauthorized access detected. Please identify yourself.');}
+
+function incCaptures(){LEONI.captureCount++;document.getElementById('capture-count').textContent=LEONI.captureCount;}
+
+// ── CAMERA ──
+async function toggleCamera(){
+  if(LEONI.cameraActive){
+    if(LEONI.stream)LEONI.stream.getTracks().forEach(t=>t.stop());LEONI.stream=null;LEONI.cameraActive=false;
+    document.getElementById('webcam-overlay').style.display='flex';document.getElementById('cam-btn-text').textContent='ACTIVATE CAMERA';document.getElementById('cam-dot').className='status-dot idle';addLog('Camera off','info');
+  }else{
+    try{
+      LEONI.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+      document.getElementById('webcam-preview').srcObject=LEONI.stream;document.getElementById('webcam-overlay').style.display='none';
+      LEONI.cameraActive=true;document.getElementById('cam-btn-text').textContent='DEACTIVATE CAMERA';document.getElementById('cam-dot').className='status-dot active';
+      addLog('Camera on','ok');if(LEONI.monitorActive)startMotion();
+    }catch(e){addLog('Camera permission denied','alert');speak('Please allow camera access in your browser.');}
+  }
+}
+
+// ── STATS ──
+async function fetchStats(){
+  try{const r=await fetch(`${LEONI.backendURL}/api/system/stats`);const d=await r.json();
+    ['cpu','mem','disk'].forEach((k,i)=>{const v=d[['cpu','memory','disk'][i]];document.getElementById(k+'-val').textContent=v+'%';document.getElementById(k+'-bar').style.width=v+'%';});
+    document.getElementById('uptime-val').textContent=d.uptime;document.getElementById('os-val').textContent=d.os;document.getElementById('api-dot').className='status-dot active';
+  }catch(e){document.getElementById('api-dot').className='status-dot warning';}
+}
+async function pingBackend(){try{await fetch(`${LEONI.backendURL}/api/ping`);document.getElementById('api-dot').className='status-dot active';}catch(e){document.getElementById('api-dot').className='status-dot warning';addLog('Backend offline — limited mode','warn');}}
+
+// ── UI HELPERS ──
+function setOrbState(s){const o=document.getElementById('orb-core');o.className='orb-core';if(s!=='idle')o.classList.add(s);}
+function setStatus(t){document.getElementById('leoni-status').textContent=t;}
+function addMessage(type,text){
+  const area=document.getElementById('chat-area'),time=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),icons={leoni:'◆',user:'▸',system:'!'};
+  const div=document.createElement('div');div.className=`msg ${type}`;
+  if(type==='system')div.innerHTML=`<div class="msg-bubble">${text}</div>`;
+  else div.innerHTML=`<div><div class="msg-avatar">${icons[type]||'?'}</div></div><div><div class="msg-bubble">${text}</div><div class="msg-time">${time}</div></div>`;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function addLog(text,type='info'){
+  const log=document.getElementById('security-log'),time=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div=document.createElement('div');div.className=`log-entry ${type}`;div.innerHTML=`<span class="log-time">${time}</span>${text}`;
+  log.appendChild(div);log.scrollTop=log.scrollHeight;while(log.children.length>50)log.removeChild(log.firstChild);
+}
+async function clearChat(){
+  document.getElementById('chat-area').innerHTML='';LEONI.chatHistory=[];addMessage('system','— CONVERSATION CLEARED —');
+  if(LEONI.sessionToken)try{await fetch(`${LEONI.backendURL}/api/chat/clear`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken}});}catch(e){}
+}
+
+// ── CHAT EXPORT ──
+async function exportChat(){
+  if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/chat/export`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});
+    if(!r.ok){addMessage('leoni','Export failed.');return;}
+    const d=await r.json();if(!d.export||d.count===0){addMessage('leoni','No conversation to export yet.');return;}
+    const blob=new Blob([d.export],{type:'text/plain'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`leoni_chat_${new Date().toISOString().slice(0,10)}.txt`;a.click();URL.revokeObjectURL(url);
+    addLog('Chat exported','ok');addMessage('leoni',`✓ Chat exported (${d.count} exchanges).`);
+  }catch(e){addMessage('leoni','Export failed — backend unreachable.');}
+}
+
+// ── SETTINGS ──
+function openSettings(){
+  document.getElementById('cfg-backend-url').value=LEONI.backendURL;
+  const r=document.getElementById('voice-rate').value,p=document.getElementById('voice-pitch').value,v=document.getElementById('voice-volume').value;
+  document.getElementById('cfg-rate').value=r;document.getElementById('cfg-pitch').value=p;document.getElementById('cfg-volume').value=v;
+  document.getElementById('cfg-rate-val').textContent=parseFloat(r).toFixed(2);
+  document.getElementById('cfg-pitch-val').textContent=parseFloat(p).toFixed(2);
+  document.getElementById('cfg-volume-val').textContent=parseFloat(v).toFixed(2);
+  document.getElementById('groq-key-status').textContent='';document.getElementById('pass-change-status').textContent='';
+  ['cfg-rate','cfg-pitch','cfg-volume'].forEach(id=>{
+    const el=document.getElementById(id),val=document.getElementById(id+'-val');
+    const mirror={'cfg-rate':'voice-rate','cfg-pitch':'voice-pitch','cfg-volume':'voice-volume'};
+    el.oninput=()=>{val.textContent=parseFloat(el.value).toFixed(2);document.getElementById(mirror[id]).value=el.value;};
+  });
+  document.getElementById('settings-modal').classList.add('show');
+}
+async function saveGroqKey(){
+  const key=document.getElementById('cfg-groq-key').value.trim(),statusEl=document.getElementById('groq-key-status');
+  if(!key){statusEl.style.color='var(--gold)';statusEl.textContent='⚠ Enter a key first.';return;}
+  if(!LEONI.sessionToken){statusEl.style.color='var(--danger)';statusEl.textContent='⚠ Authenticate first.';return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/config/groq`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken},body:JSON.stringify({key})});
+    const d=await r.json();
+    if(r.ok){statusEl.style.color='var(--safe)';statusEl.textContent='✅ '+(d.note||'Key saved.');addLog('Groq key updated','ok');document.getElementById('cfg-groq-key').value='';}
+    else{statusEl.style.color='var(--danger)';statusEl.textContent='❌ '+(d.error||'Failed.');}
+  }catch(e){statusEl.style.color='var(--danger)';statusEl.textContent='❌ Backend unreachable.';}
+}
+function saveBackendURL(){const url=document.getElementById('cfg-backend-url').value.trim();if(!url)return;LEONI.backendURL=url;localStorage.setItem('leoni_backend',url);addLog('Backend URL updated','info');pingBackend();document.getElementById('settings-modal').classList.remove('show');}
+
+// ── PROCESSES ──
+async function showProcesses(){document.getElementById('processes-modal').classList.add('show');await loadProcesses();}
+async function loadProcesses(){
+  const el=document.getElementById('processes-content');el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div>';
+  if(!LEONI.sessionToken){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--gold);">⚠ Authenticate first.</div>';return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/system/processes`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});
+    if(!r.ok)throw new Error('Unauthorized');
+    const d=await r.json();if(!d.processes||!d.processes.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim);">No data.</div>';return;}
+    let html='<table class="data-table"><thead><tr><th>PID</th><th>NAME</th><th>CPU%</th><th>MEM%</th><th>STATUS</th><th>KILL</th></tr></thead><tbody>';
+    d.processes.forEach(p=>{
+      const cpu=(p.cpu_percent||0).toFixed(1),mem=(p.memory_percent||0).toFixed(1);
+      const cpuColor=p.cpu_percent>20?'var(--danger)':p.cpu_percent>5?'var(--gold)':'var(--text-mid)';
+      html+=`<tr><td>${p.pid}</td><td style="color:var(--text-bright)">${p.name||'—'}</td><td style="color:${cpuColor}">${cpu}%</td><td>${mem}%</td><td style="color:${p.status==='running'?'var(--safe)':'var(--text-dim)'}">${p.status||'—'}</td><td><button class="kill-btn" onclick="killProcess(${p.pid},'${(p.name||'').replace(/'/g,'')}')">KILL</button></td></tr>`;
+    });
+    html+='</tbody></table>';el.innerHTML=html;addLog(`Processes: ${d.processes.length}`,'info');
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--danger);">❌ ${e.message}</div>`;}
+}
+async function killProcess(pid,name){
+  if(!confirm(`Kill process "${name}" (PID ${pid})?`))return;
+  try{const r=await fetch(`${LEONI.backendURL}/api/system/kill`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken},body:JSON.stringify({pid})});
+    const d=await r.json();if(r.ok&&d.success){addLog(`Killed: ${name} (${pid})`,'warn');addMessage('leoni','✓ '+d.message);loadProcesses();}else addMessage('leoni','Kill failed: '+(d.error||''));
+  }catch(e){addMessage('leoni','Kill failed — backend unreachable.');}
+}
+
+// ── NETWORK ──
+async function showNetworkInfo(){document.getElementById('network-modal').classList.add('show');await loadNetworkInfo();}
+async function loadNetworkInfo(){
+  const el=document.getElementById('network-content');el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div>';
+  if(!LEONI.sessionToken){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--gold);">⚠ Authenticate first.</div>';return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/system/network`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});if(!r.ok)throw new Error('Unauthorized');
+    const d=await r.json();
+    let html=`<div class="net-card"><div class="net-iface">HOST</div><div class="net-addr">Hostname: <span style="color:var(--cyan)">${d.hostname||'—'}</span></div><div class="net-addr">Platform: <span style="color:var(--cyan)">${d.platform||'—'}</span></div>${d.bytes_sent!=null?`<div class="net-addr">Sent: <span style="color:var(--safe)">${(d.bytes_sent/1048576).toFixed(1)} MB</span></div>`:''} ${d.bytes_recv!=null?`<div class="net-addr">Recv: <span style="color:var(--gold)">${(d.bytes_recv/1048576).toFixed(1)} MB</span></div>`:''}</div>`;
+    if(d.interfaces)Object.entries(d.interfaces).forEach(([iface,addrs])=>{const rel=addrs.filter(a=>a.address&&!a.address.startsWith('00:'));if(!rel.length)return;html+=`<div class="net-card"><div class="net-iface">${iface}</div>${rel.map(a=>`<div class="net-addr">${a.family||''}: <span style="color:var(--cyan)">${a.address}</span></div>`).join('')}</div>`;});
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--danger);">❌ ${e.message}</div>`;}
+}
+
+// ── SYSINFO ──
+async function showSysInfo(){document.getElementById('sysinfo-modal').classList.add('show');await loadSysInfo();}
+async function loadSysInfo(){
+  const el=document.getElementById('sysinfo-content');el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div>';
+  if(!LEONI.sessionToken){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--gold);">⚠ Authenticate first.</div>';return;}
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/system/info`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});if(!r.ok)throw new Error('Unauthorized');
+    const d=await r.json();const row=(k,v)=>`<div class="sysinfo-row"><span class="sysinfo-key">${k}</span><span class="sysinfo-val">${v}</span></div>`;
+    let html=`<div class="sysinfo-card"><div class="sysinfo-title">PLATFORM</div>${row('OS',d.platform+' '+d.release)}${row('Machine',d.machine||'—')}${row('Processor',(d.processor||'—').substring(0,50))}${row('Python',d.python||'—')}${row('Hostname',d.hostname||'—')}${d.boot_time?row('Boot Time',d.boot_time):''}</div>`;
+    if(d.cpu_cores_logical!=null){html+=`<div class="sysinfo-card"><div class="sysinfo-title">CPU & MEMORY</div>${row('Physical Cores',d.cpu_cores_physical||'—')}${row('Logical Cores',d.cpu_cores_logical)}${d.cpu_temp_c!=null?row('CPU Temp',d.cpu_temp_c+'°C'):''}${row('RAM Total',d.ram_total_gb+' GB')}${row('RAM Used',d.ram_used_gb+' GB')}${row('RAM Available',d.ram_available_gb+' GB')}</div>`;}
+    if(d.disks&&d.disks.length){html+=`<div class="sysinfo-card"><div class="sysinfo-title">STORAGE</div>${d.disks.map(dk=>row(dk.mountpoint,`${dk.used_gb}/${dk.total_gb} GB (${dk.percent}%) — ${dk.fstype||''}`)).join('')}</div>`;}
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--danger);">❌ ${e.message}</div>`;}
+}
+
+// ── BATTERY ──
+async function showBattery(){
+  if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}
+  try{const r=await fetch(`${LEONI.backendURL}/api/system/battery`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});if(!r.ok){addMessage('leoni','Battery info requires authentication.');return;}
+    const d=await r.json();const msg=d.available?`Battery: ${d.percent}%. ${d.plugged?'Plugged in':'On battery'}. ${d.time_left}.`:d.message||d.error||'No battery.';
+    addMessage('leoni','🔋 '+msg);speak(msg);addLog(`Battery: ${d.percent||'N/A'}%`,d.percent<20?'warn':'ok');
+  }catch(e){addMessage('leoni',"Couldn't get battery info.");}
+}
+
+// ── CAPTURES ──
+async function showCaptures(){if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}document.getElementById('captures-modal').classList.add('show');await loadCaptures();}
+async function loadCaptures(){
+  const el=document.getElementById('captures-content');el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim);">Loading...</div>';
+  try{
+    const r=await fetch(`${LEONI.backendURL}/api/captures`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});if(!r.ok)throw new Error('Unauthorized');
+    const d=await r.json();if(!d.captures||!d.captures.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);">No captures yet.</div>';return;}
+    let html=`<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:12px;">${d.count} file(s)</div><div class="capture-grid">`;
+    d.captures.forEach(f=>{
+      const url=`${LEONI.backendURL}/api/captures/${encodeURIComponent(f.name)}`;const isImg=/\.(jpg|jpeg|png)$/i.test(f.name);
+      html+=`<div class="capture-thumb">${isImg?`<img src="${url}" alt="${f.name}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'" style="cursor:pointer;">`:`<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;" onclick="window.open('${url}','_blank')">📄</div>`}<div class="cap-name" title="${f.name}">${f.name}</div><div class="cap-size">${(f.size/1024).toFixed(1)} KB · ${f.time}</div><button class="cap-del-btn" onclick="deleteCapture('${f.name}')">🗑 DELETE</button></div>`;
+    });
+    html+='</div>';el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--danger);">❌ ${e.message||'Failed.'}</div>`;}
+}
+async function deleteCapture(name){
+  if(!confirm(`Delete "${name}"?`))return;
+  try{const r=await fetch(`${LEONI.backendURL}/api/captures/delete/${encodeURIComponent(name)}`,{method:'DELETE',headers:{'X-LEONI-Token':LEONI.sessionToken}});const d=await r.json();
+    if(r.ok&&d.success){addLog('Deleted: '+name,'info');loadCaptures();}else alert('Delete failed: '+(d.error||''));
+  }catch(e){alert('Backend unreachable.');}
+}
+
+// ── NOTES ──
+async function showNotes(){if(!LEONI.sessionToken){speak('Authentication required.');authenticateAdmin();return;}document.getElementById('notes-modal').classList.add('show');await loadNotes();}
+async function loadNotes(){
+  const el=document.getElementById('notes-content');el.innerHTML='<div style="text-align:center;padding:12px;color:var(--text-dim);">Loading...</div>';
+  try{const r=await fetch(`${LEONI.backendURL}/api/notes`,{headers:{'X-LEONI-Token':LEONI.sessionToken}});const d=await r.json();
+    if(!d.notes||!d.notes.length){el.innerHTML='<div style="text-align:center;padding:12px;color:var(--text-dim);">No notes yet. Type above and press Add.</div>';return;}
+    el.innerHTML=d.notes.map(n=>`<div class="note-item"><div><div class="note-text">${n.text}</div><div class="note-meta">${n.created}</div></div><button class="note-del-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:12px;color:var(--danger);">❌ ${e.message}</div>`;}
+}
+async function addNote(){
+  const inp=document.getElementById('note-input'),text=inp.value.trim();if(!text)return;
+  try{const r=await fetch(`${LEONI.backendURL}/api/notes`,{method:'POST',headers:{'Content-Type':'application/json','X-LEONI-Token':LEONI.sessionToken},body:JSON.stringify({text})});if(r.ok){inp.value='';addLog('Note added','ok');loadNotes();}}catch(e){alert('Backend unreachable.');}
+}
+async function deleteNote(id){
+  try{const r=await fetch(`${LEONI.backendURL}/api/notes/${id}`,{method:'DELETE',headers:{'X-LEONI-Token':LEONI.sessionToken}});if(r.ok){addLog('Note deleted','info');loadNotes();}}catch(e){alert('Backend unreachable.');}
+}
+
+// ── RESET ──
+function resetLEONI(){if(!confirm('Erase all saved LEONI data? You will re-run setup.'))return;localStorage.removeItem('leoni_admin');localStorage.removeItem('leoni_pass_hash');localStorage.removeItem('leoni_backend');location.reload();}
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&e.target===document.body){e.preventDefault();toggleListen();}
+  if(e.code==='Escape'){document.querySelectorAll('.big-modal.show').forEach(m=>m.classList.remove('show'));document.getElementById('modal-overlay').classList.remove('show');document.getElementById('confirm-modal').classList.remove('show');}
+});
+
+// ── BOOT ──
+window.speechSynthesis.onvoiceschanged=()=>{};
+window.addEventListener('load',()=>{speechSynthesis.getVoices();if(!loadSavedConfig())document.getElementById('setup-overlay').style.display='flex';});
+</script>
+</body>
+</html>
